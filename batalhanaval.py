@@ -4,27 +4,27 @@ import random
 class Tabuleiro:
 	#iniciar classe
 	def __init__(self) -> None:
-		self.tab = [["-" for _ in range(0,9)] for _ in range(0,9)]
+		self.tab = [["-" for _ in range(0,10)] for _ in range(0,10)]
 	
 	#para recomecar o tabuleiro	
 	def resetar(self) -> None:
-		for i in range (0,9):
-			for j in range (0,9):
+		for i in range (0,10):
+			for j in range (0,10):
 				self.tab[i][j] = "-"
 	
 	#mostrar o proprio tabuleiro			
 	def mostrar(self) -> None:
 		print("\nSeu tabuleiro:")
-		for coluna in range (0,9):
-				for linha in range (0,9):
+		for coluna in range (0,10):
+				for linha in range (0,10):
 					print(self.tab[linha][coluna], end=" ")
 				print(end="\n")
 			
 	#mostrar o tabuleiro do oponente
 	def mostrarop(self) -> None:
 		print("\nTabuleiro da máquina:")
-		for coluna in range (0,9):
-		  	for linha in range (0,9):
+		for coluna in range (0,10):
+		  	for linha in range (0,10):
 		  		if self.tab[linha][coluna] == "N":
 		  			print("-", end=" ")
 		  		else:
@@ -47,8 +47,8 @@ class Tabuleiro:
 
 	#colocar a pecas. retorna true se conseguiu. retorna false se já tinha um navio lá
 	def posicionar(self, pecas: Pecas)-> bool:
-		for i in range(0, len(pecas)):
-			linha, coluna = pecas[i]
+		for i in range(0, len(pecas.posicao)):
+			linha, coluna = pecas.posicao[i]
 			if self.tab[linha][coluna] == "N":
 				print("Casas já ocupadas. Tente novamente.")
 				return False
@@ -65,11 +65,14 @@ class Pecas:
 		self.tamanho = tamanho
 		self.nome = nome
 		self.dono = dono
-		for linha in range (0, tamanho-1):
-				self.posicao[linha] = [-1, -1]
+		self.posicao = []
+		#for linha in range(0, tamanho):
+				#self.posicao[linha] = [-1, -1]
 				
-	def posicionar(self, posicoes: list[tuple[int]], tab: Tabuleiro) -> None:
-		pass
+	def posicionar(self, posicoes: list[tuple[int]], tab: Tabuleiro, atacante: Jogador) -> None:
+		self.posicao = posicoes
+		return tab.posicionar(self)
+		
 	
 				
 class Jogador:
@@ -102,40 +105,81 @@ class Jogador:
 			self.ataque = None
 		
 		#pega as coordenadas que ele deseja colocar o navio
-		def posicao(self, peca: Pecas) -> None:
+		def posicao(self, peca: Pecas, toponente: Tabuleiro) -> None:
 			nome = input(f"Dê  um nome para o seu navio de {peca.tamanho}.")
 			peca.nome = nome
 			verticalOuHorizontal = input("Você quer colocar a sua primeira peca na horizontal ou na vertical?")
 			verticalOuHorizontal = verticalOuHorizontal.lower()
 			if verticalOuHorizontal == "vertical" or verticalOuHorizontal == "v":
-				pass
+				coluna = input("Em qual coluna você deseja colocar a sua peça?")
+				try:
+					coluna = int(coluna)-1
+					if coluna<0 or coluna>9:
+						erro = int("a")
+				except:
+					print(F"Erro! Só são aceitos números inteiros de 1 a 10. Tente de novo colocar essa peca de {peca.tamanho} casas de tamanho.")
+					self.posicao(peca, toponente)
+					return
+				linha = input("Em qual linha você deseja colocar uma das extremidades do seu navio?")
+				try:
+					linha = int(linha)-1
+					if linha<0 or linha>9:
+						erro = int("a")
+				except:
+					print(F"Erro! Só são aceitos números inteiros de 1 a 10. Tente de novo colocar essa peca de {peca.tamanho} casas de tamanho.")
+					self.posicao(peca, toponente)
+					return
+				if linha+peca.tamanho>9:
+					linha2 = linha - peca.tamanho
+				elif linha-peca.tamanho<0:
+					linha2 = linha + peca.tamanho
+				else:
+					linha2 = input("Onde você deseja colocar a outra extremidade do navio? Na linha {linha + peca.tamanho} ou na linha {linha - peca.tamanho}?")
+					try:
+						linha2 = int(linha2)-1
+						if linha2 != linha + peca.tamanho and linha != linha - peca.tamanho:
+							erro = int("a")
+					except:
+						print(f"Nenhuma das opções selecionadas. Tente de novo colocar essa peca de {peca.tamanho} casas de tamanho.")
+						self.posicao(peca, toponente)
+						return
+				if linha>linha2:
+					i = linha2
+					linha2 = linha
+					linha = i
+				posicoes = []
+				for i in range(linha, linha2+1):
+					posicoes.append([i, coluna])
+				peca.posicionar(posicoes, toponente, self)
 			elif verticalOuHorizontal == "horizontal" or verticalOuHorizontal == "h":
 				pass
 			else:
-				print("ERRO! Não foi digitado horizontal ou vertical. Tente de novo colocar essa peca de {peca.tamanho} casas de tamanho.")
+				print(F"ERRO! Não foi digitado horizontal ou vertical. Tente de novo colocar essa peca de {peca.tamanho} casas de tamanho.")
 				self.posicao(peca)
 			
 		
 class Maquina(Jogador):
 		#escolhe as posicoes que as pecas da maquina serao colocadas
-		def colocarPecas(self, tamanho: int) -> list[tuple[int]]:
+		def colocarPecas(self, peca: Pecas, tseu: Tabuleiro):
 			#sorteio para ver se o navio ficará na horizontal ou vertical:
 			verticalOuHorizontal = random.randint(1,2)
 			posicoes = []
 			linha = random.randint(0,9)
-			coluna = random.randit(0,9)
-			for i in range(0, tamanho-1):
+			coluna = random.randint(0,9)
+			for i in range(0, peca.tamanho):
 				if verticalOuHorizontal == 1:
-					if coluna + tamanho <= 9:
-						posicoes[i] = [linha, coluna+i]
+					if coluna + peca.tamanho <= 9:
+						posicoes.append([linha, coluna+i]) 
 					else:
-						posicoes[i] = [linha, coluna-i]
+						posicoes.append([linha, coluna-i]) 
 				else:
-					if linha + tamanho <= 9:
-						posicoes[i] = [linha+i, coluna]
+					if linha + peca.tamanho <= 9:
+						posicoes.append([linha+i, coluna])
 					else:
-						posicoes[i] = [linha-i, coluna]
-			return posicoes
+						posicoes.append([linha-i, coluna])
+			if not(peca.posicionar(posicoes, tseu, self)):
+				self.colocarPecas(peca, tseu)
+				
 			
 
 		#escolhe e realiza o lance da máquina:
@@ -152,7 +196,6 @@ class Maquina(Jogador):
 				self.ataque = None
 			else:
 				#Se a máquina acertou um navio, ela irá tentar explorar horizontalmente e verticalmente os espaços adjacentes por um segundo acerto.
-				
 				pass
 			
 class Partida():
@@ -172,13 +215,42 @@ class Partida():
 		toponente.resetar()
 		tseu.mostrar()
 		toponente.mostrarop()
+		pseu.append(Pecas(2, "", voce, toponente))
+		pseu.append(Pecas(2, "", voce, toponente))
+		pseu.append(Pecas(3, "", voce, toponente))
+		pseu.append(Pecas(3, "", voce, toponente))
+		pseu.append(Pecas(4, "", voce, toponente))
+		pseu.append(Pecas(5, "", voce, toponente))
+		poponente.append(Pecas(2, "Rebocador 1", oponente, tseu))
+		poponente.append(Pecas(2, "Rebocador 2", oponente, tseu))
+		poponente.append(Pecas(3, "Contratorpedeiro 1", oponente, tseu))
+		poponente.append(Pecas(3, "Contratorpedeiro 2", oponente, tseu))
+		poponente.append(Pecas(4, "Cruzador", oponente, tseu))
+		poponente.append(Pecas(5, "Porta-Aviões", oponente, tseu))
+		oponente.colocarPecas(poponente[0], tseu)
+		oponente.colocarPecas(poponente[1], tseu)
+		oponente.colocarPecas(poponente[2], tseu)
+		oponente.colocarPecas(poponente[3], tseu)
+
+
+
+
+
+
+
+
+
+		
 		
 	def novaRodada(self, voce: Jogador, oponente: Maquina, tseu: Tabuleiro, toponente: Tabuleiro) -> None:
 		voce.atacar(toponente)
 		toponente.mostrarop()
+		toponente.mostrar()
 		oponente.fazerLance(tseu)
 		if voce.acertosPartidas == 19 or oponente.acertosPartidas == 19:
 			self.fimPartida()
+		else:
+			self.novaRodada(voce, oponente, tseu, toponente)
 	
 	def fimPartida(self):
 		if self.jogador1.acertosPartidas == 19:
@@ -207,7 +279,9 @@ def menu() -> None:
 		print("Resposta Inválida!\n")
 		menu()
 
-partidas = []		
+partidas = []
+pseu = []
+poponente = []		
 menu()
 
 
